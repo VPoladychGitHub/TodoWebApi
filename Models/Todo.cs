@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Xml.Serialization;
 
-namespace TodoWebApi
+namespace TodoWebApi.Models
 {
     public class Todo
     {
@@ -14,7 +14,7 @@ namespace TodoWebApi
     }
     public class Todos
     {
-        [XmlArrayAttribute("Items")]
+        [XmlArray("Items")]
         public List<Todo> todo;
     }
 }

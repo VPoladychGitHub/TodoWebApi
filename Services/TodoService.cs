@@ -6,7 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Xml.Serialization;
-
+using TodoWebApi.Models;
 
 namespace TodoWebApi.Services
 {
@@ -25,18 +25,13 @@ namespace TodoWebApi.Services
             {
                 return todusList;
             }
-            // Функция записи
-            private set
-            {    }
         }
-
         public void AddTodo(Todo td)
         {
             todusList.Add(td);
             SaveList();
         }
-
-        public string  DeleteTodo(int i)
+        public IResult  DeleteTodo(int i)
         {
             int ind = --i;
             if((ind < todusList.Count)  && (ind >= 0))
@@ -46,10 +41,10 @@ namespace TodoWebApi.Services
                 if(res)
                 {
                     SaveList();
-                    return $"record   {td.MyTodo}  deleted";
+                    return Results.Ok($"record   {td.MyTodo}  deleted");
                 }
             }
-            return   $"record  {i}  not faund" ;
+            return Results.Problem("record not delete",$"record  {++i}  not faund", 400);
         }
 
         private void SaveList()
