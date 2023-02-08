@@ -7,6 +7,13 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Diagnostics;
+using TodoWebApi.Models.Exceptions;
+using Microsoft.AspNetCore.Http.HttpResults;
+using System.Diagnostics;
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Options;
 
 const string tokenKey = "1hjdcmjdjkfckjvmvmkjvgmmvgmkvfjkf";
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +44,8 @@ AddJwtBearer(option =>
 builder.Services.AddAuthorization();
 builder.Services.AddAuthorization();
 
+builder.Services.AddProblemDetails();
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -45,13 +54,24 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseExceptionHandler("/error");
+var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures);
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("uk"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures,
+    ApplyCurrentCultureToResponseHeaders = true
+});
 
 app.UseHttpsRedirection();
+
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/getToken",  (string login, string password) => {
 
-    if (login != "max" || password != "123")
+    if (login != "qwe" || password != "123")
     {
         return Results.Unauthorized();
     }
@@ -75,7 +95,18 @@ app.MapGet("/getToken",  (string login, string password) => {
     return Results.Ok(stringToken);
 });
 
-app.MapGet("/logout", (HttpContext context) => context.SignOutAsync());
+app.Map( "/error",(HttpContext context) =>
+{
+    var execption = context.Features.Get<IExceptionHandlerPathFeature>()!.Error;
+    IResult result = execption switch
+    {
+        NotFaundTodo notFaund => Results.Problem(statusCode: 400, title: $"record : {notFaund.EntityName}  not faund", extensions: new Dictionary<string, object?> { { "trace-id", Activity.Current?.Id } }),
+        ValidationException validationError => Results.Problem(statusCode: 400, title: validationError.Message,extensions:new Dictionary<string, object?> { { "trace-id", Activity.Current?.Id} }),
+        _ => Results.Problem( extensions: new Dictionary<string, object?> { { "trace-id", Activity.Current?.Id } }),
+    };
+
+    return result;
+});
 app.MapControllers();
 
 app.Run();

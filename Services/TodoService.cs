@@ -1,12 +1,16 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Xml.Serialization;
+using TodoWebApi.Controllers;
 using TodoWebApi.Models;
+using TodoWebApi.Models.Exceptions;
+using Microsoft.Extensions.Localization;
 
 namespace TodoWebApi.Services
 {
@@ -31,7 +35,7 @@ namespace TodoWebApi.Services
             todusList.Add(td);
             SaveList();
         }
-        public IResult  DeleteTodo(int i)
+        public IResult  DeleteTodo(int i, IStringLocalizer<ToDoController> localizer)
         {
             int ind = --i;
             if((ind < todusList.Count)  && (ind >= 0))
@@ -44,7 +48,8 @@ namespace TodoWebApi.Services
                     return Results.Ok($"record   {td.MyTodo}  deleted");
                 }
             }
-            return Results.Problem("record not delete",$"record  {++i}  not faund", 400);
+            throw new NotFaundTodo(Convert.ToString(++i));
+            //throw new NotFaundTodo(localizer["recordNotFound"]);
         }
 
         private void SaveList()
