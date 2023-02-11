@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using TodoWebApi.Models;
 using TodoWebApi.Models.Exceptions;
-using TodoWebApi.Services;
 using TodoWebApi.Models;
 using Microsoft.Extensions.Localization;
+using TodoWebApi.DataAccess;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace TodoWebApi.Controllers
 {
@@ -16,39 +18,46 @@ namespace TodoWebApi.Controllers
     public class ToDoController : ControllerBase
     {
         Random rnd = new Random();
-        private readonly TodoService todoService;
         private readonly IStringLocalizer<ToDoController> localizer;
-        public ToDoController( TodoService todoService, IStringLocalizer<ToDoController> localizer)
+        private readonly TodoContext todoContext;
+        public ToDoController( IStringLocalizer<ToDoController> localizer, TodoContext todoContext)
         {
-            this.todoService = todoService;
             this.localizer = localizer;
+            this.todoContext = todoContext;
         }
 
         [AllowAnonymous]
         [HttpGet("/listtodo")]
-        public IEnumerable<Todo> Get()
+        public async Task<IEnumerable<Todo>> Get()
         {
-            return (IEnumerable<Todo>)todoService.TodusListProp;
+            var results = await todoContext.Todos.
+                AsNoTracking()
+               .ToListAsync();
+            return results;
         }
-
+   
         [HttpPost("/newtodo")]
-        public IResult PostAddTodo([FromQuery] TestRequest testRequest)
+        public async Task<ActionResult> PostAddTodo(Todo todo)
         {
-            try
-            {
-                todoService.AddTodo(new Todo { ID = rnd.Next(), MyTodo = testRequest.ValidTodo, DateTodo = DateTime.Now.AddDays(rnd.Next(5)) });
-            }
-            catch (Exception e)
-            {
-                throw new ValidationException("ValidationException", e);
-            }
-           return Results.Ok("record   add");
+            todoContext.Todos.Add(todo);
+            await todoContext.SaveChangesAsync();
+            return Ok("record   add");
         }
 
         [HttpDelete("/deletedtodo")]
-        public IResult  DeleteTodo([FromQuery] TestDelete   testDelete)
+        public async Task<ActionResult> DeleteTodo( int id)
         {
-            return  todoService.DeleteTodo(testDelete.Num, localizer);         
+            /*  Todo td = todoContext.Todos.Where(x => x.ID == id).Single<Todo>();
+            todoContext.SaveChangesAsync();
+            return Ok("record   del");*/
+            var td = await todoContext.Todos.FindAsync(id);
+            if (td == null)
+            {
+                return NotFound();
+            }
+            todoContext.Todos.Remove(td);
+            await todoContext.SaveChangesAsync();
+            return Ok("record   del");
         }
     }
 }

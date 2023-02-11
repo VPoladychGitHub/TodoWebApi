@@ -1,6 +1,5 @@
 using System.Reflection;
 using FluentValidation;
-using TodoWebApi.Services;
 using FluentValidation.AspNetCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -14,6 +13,8 @@ using System.Diagnostics;
 using System.Globalization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Options;
+using TodoWebApi.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 const string tokenKey = "1hjdcmjdjkfckjvmvmkjvgmmvgmkvfjkf";
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +22,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddSingleton<TodoService>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -46,6 +46,13 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+var dbConnect = builder.Configuration.GetConnectionString("Database");
+builder.Services.AddDbContext<TodoContext>(
+    options =>
+    {
+        options.UseSqlServer(dbConnect);
+    });
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
