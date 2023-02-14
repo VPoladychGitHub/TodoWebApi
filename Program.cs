@@ -15,6 +15,10 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Options;
 using TodoWebApi.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using TodoWebApi.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
+;
 
 const string tokenKey = "1hjdcmjdjkfckjvmvmkjvgmmvgmkvfjkf";
 var builder = WebApplication.CreateBuilder(args);
@@ -42,7 +46,7 @@ AddJwtBearer(option =>
     };
 });
 builder.Services.AddAuthorization();
-builder.Services.AddAuthorization();
+
 
 builder.Services.AddProblemDetails();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
@@ -53,6 +57,11 @@ builder.Services.AddDbContext<TodoContext>(
     {
         options.UseSqlServer(dbConnect);
     });
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<TodoContext>()
+    .AddSqlServer(connectionString: dbConnect, name: "Database")
+    .AddSqlServer(connectionString: builder.Configuration.GetConnectionString("Database2"), name: "Database2", tags: new[] { "readiness" }, failureStatus: HealthStatus.Degraded);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -115,5 +124,5 @@ app.Map( "/error",(HttpContext context) =>
     return result;
 });
 app.MapControllers();
-
+app.MapHealthChecks();
 app.Run();
